@@ -254,17 +254,27 @@
 
 
         <div id="marker-content-template" style="display: none">
-            <div class="marker-info-window" style="overflow-y: auto; overflow-x: hidden; height: 370px;">
-                <img class="profile-image" style="float: left" />
-                <h4 class="title"></h4>
-                <p class="added-by"></p>
-                <p class="creation-date"></p>
+            <div class="marker-info-window" style="overflow-y: hidden; overflow-x: hidden; height: 300px;">
+                <!--<img class="profile-image" style="float: left" />-->
+                <div class="marker-info-window-title">
+                    <h4 class="title" style="text-align: right"></h4>
+                    <div style="line-height: 30px; vertical-align: middle; display: inline-flex; justify-content: start; width: 100%;">
+                        <img src='../static/img/lamas.png' style="height: 30px; width: auto; margin-left: 12px">
+                        <span class="added-by"></span>
+                    </div>
+                    <!--<p class="creation-date"></p>-->
+                </div>
 
                 <div class="accordion-container">
                     <div>
                         <input id="ac-1" type="checkbox" />
-                        <label for="ac-1"><i class="material-icons fontIcon">&#xE002;</i>פרטי התאונה</label>
+                        <label for="ac-1">
+                            <i class="fa fa-warning"></i>פרטי התאונה
+                        </label>
                         <div class="accordion-roller ac-general">
+                            <p class="mainStreet" style="margin:0"></p>
+                            <p class="secondaryStreet" style="margin:0"></p>
+                            <p class="junction" style="margin:0"></p>
                             <p class="id" style="margin:0"></p>
                             <p class="provider_code" style="margin:0"></p>
                             <p class="severityText" style="margin:0"></p>
@@ -277,7 +287,19 @@
                     </div>
                     <div>
                         <input id="ac-2" type="checkbox" />
-                        <label for="ac-2"><i class="fa fa-road fontIcon" id="fa-road-fix"></i>תנאי הדרך</label>
+                        <label for="ac-2">
+                            <i class="fa fa-calendar"></i>תאריך
+                        </label>
+                        <div class="accordion-roller ac-general">
+                            <p class="creation-date" style="margin:0"></p>
+                            <p class="dayType" style="margin:0"></p>
+                        </div>
+                    </div>
+                    <div>
+                        <input id="ac-3" type="checkbox" />
+                        <label for="ac-3">
+                            <i class="fa fa-road" id="fa-road-fix"></i>תנאים
+                        </label>
                         <div class="accordion-roller ac-general">
                             <p class="roadType" style="margin:0"></p>
                             <p class="roadShape" style="margin:0"></p>
@@ -296,33 +318,20 @@
                         </div>
                     </div>
                     <div>
-                        <input id="ac-3" type="checkbox" />
-                        <label for="ac-3"><i class="material-icons fontIcon">&#xE55F;</i>מיקום וזמן</label>
-                        <div class="accordion-roller ac-general">
-                            <p class="creation-date" style="margin:0"></p>
-                            <p class="dayType" style="margin:0"></p>
-                            <p class="mainStreet" style="margin:0"></p>
-                            <p class="secondaryStreet" style="margin:0"></p>
-                            <p class="junction" style="margin:0"></p>
-                        </div>
-                    </div>
-                    <div>
                         <input id="ac-4" type="checkbox" />
-                        <label for="ac-4"><i class="material-icons fontIcon">&#xE7FB;</i>נפגעים</label>
+                        <label for="ac-4">
+                            <i class="fa fa-car"></i>מעורבים
+                        </label>
                         <div class="accordion-roller ac-extra-large" id="involved">
 
                         </div>
-                    </div>
-                    <div>
-                        <input id="ac-5" type="checkbox" />
-                        <label for="ac-5"><i class="material-icons fontIcon">&#xE531;</i>רכבים מעורבים</label>
                         <div class="accordion-roller ac-general" id="vehicles">
 
                         </div>
                     </div>
                     <div>
                         <input id="ac-6" type="checkbox" />
-                        <label for="ac-6"><i class="material-icons fontIcon">&#xE145;</i>מידע נוסף</label>
+                        <label for="ac-6"><i class="fa fa-plus"></i>מידע נוסף</label>
                         <div class="accordion-roller ac-general">
                             <p class="igun" style="margin:0"></p>
                             <p class="unit" style="margin:0"></p>

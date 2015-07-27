@@ -89,7 +89,7 @@ var MarkerView = Backbone.View.extend({
         this.$el.find(".profile-image").attr("src", "/static/img/lamas.png");
         this.$el.find(".profile-image").attr("width", "50px");
         display_user = 'הלשכה המרכזית לסטטיסטיקה';
-        this.$el.find(".added-by").text("מקור: " + display_user);
+        this.$el.find(".added-by").text(display_user);
 
         return this;
     },
