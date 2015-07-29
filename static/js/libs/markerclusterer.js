@@ -250,7 +250,7 @@ ClusterIcon.prototype.show = function () {
         "left: " + this.anchorText_[1] + "px;" +
         "color: black;" +
         "font-weight: bold;" +
-        "font-size: 15px;" +
+        "font-size: 12px;" +
         "font-family: " + "Alef, sans-serif;" +
         "border: " + this.width_ + "px solid #D63230;" +
         "border-radius: 50%;" +
