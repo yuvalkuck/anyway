@@ -1,0 +1,226 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Anyway by hasadna</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Anyway</h1>
+        <p>ANYWAY - Car accidents map</p>
+
+        <p class="view"><a href="https://github.com/hasadna/anyway">View the Project on GitHub <small>hasadna/anyway</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/hasadna/anyway/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/hasadna/anyway/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/hasadna/anyway">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="anyway" class="anchor" href="#anyway" aria-hidden="true"><span class="octicon octicon-link"></span></a>ANYWAY</h1>
+
+<p>oway.org.il - Crowd-sourced road hazard reporting website.</p>
+
+<p>Feel free to contribute to the project. It is currently hosted on Heroku:
+<a href="http://anyway.herokuapp.com">http://anyway.herokuapp.com</a></p>
+
+<p>To report bugs and feature requests, please <a href="https://github.com/hasadna/anyway/issues">open an issue</a> on GitHub.</p>
+
+<p>See also <a href="https://github.com/hasadna/anywayAndroidApp">our Android app</a> on GitHub.</p>
+
+<h2>
+<a id="contributing" class="anchor" href="#contributing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Contributing</h2>
+
+<ul>
+<li>We try to follow the process of other Hasadna projects, e.g. <a href="https://oknesset-devel.readthedocs.org/en/latest/">Open-Knesset</a>
+</li>
+</ul>
+
+<h2>
+<a id="development-environment-setup-notes" class="anchor" href="#development-environment-setup-notes" aria-hidden="true"><span class="octicon octicon-link"></span></a>Development environment setup notes</h2>
+
+<h2>
+<a id="getting-the-code" class="anchor" href="#getting-the-code" aria-hidden="true"><span class="octicon octicon-link"></span></a>Getting the code</h2>
+
+<ol>
+<li>
+<a href="https://github.com/hasadna/anyway/fork">Fork</a> this repository on GitHub</li>
+<li><code>git clone https://github.com/*you*/anyway</code></li>
+<li><p>Add the main repository as your upstream remote: <code>git remote add upstream https://github.com/hasadna/anyway</code></p></li>
+</ol>
+
+<ul>
+<li>Get updates whenever you start working: <code>git pull upstream master</code>
+</li>
+<li>Push to your fork when you've committed your changes and tested them: <code>git push</code>, and make a pull request from your fork on GitHub</li>
+</ul>
+
+<h2>
+<a id="installing-dependencies" class="anchor" href="#installing-dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installing dependencies</h2>
+
+<h3>
+<a id="ubuntu" class="anchor" href="#ubuntu" aria-hidden="true"><span class="octicon octicon-link"></span></a>Ubuntu</h3>
+
+<ol>
+<li><code>sudo apt-get install python-pip python-dev python-tk libpq-dev</code></li>
+</ol>
+
+<h3>
+<a id="os-x" class="anchor" href="#os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>OS X</h3>
+
+<ol>
+<li><code>sudo easy_install pip setuptools</code></li>
+<li>Install postgresql: <code>brew install postgresql</code> (after installing <a href="http://brew.sh">brew</a>)</li>
+</ol>
+
+<h3>
+<a id="virtualenv-setup-both-ubuntu-and-os-x" class="anchor" href="#virtualenv-setup-both-ubuntu-and-os-x" aria-hidden="true"><span class="octicon octicon-link"></span></a>virtualenv setup (both Ubuntu and OS X)</h3>
+
+<ol>
+<li><code>sudo pip install virtualenvwrapper</code></li>
+<li>Add to your <code>~/.bashrc</code>: <code>source /usr/local/bin/virtualenvwrapper.sh</code>
+</li>
+<li><code>mkvirtualenv anyway</code></li>
+<li><code>cd anyway</code></li>
+<li><p><code>pip install -r requirements.txt</code></p></li>
+</ol>
+
+<ul>
+<li>Each time you start working: <code>workon anyway</code>
+</li>
+</ul>
+
+<h3>
+<a id="windows-experimental" class="anchor" href="#windows-experimental" aria-hidden="true"><span class="octicon octicon-link"></span></a>Windows (experimental)</h3>
+
+<ol>
+<li> Install <a href="http://www.python.org/getit">Python 2.7</a>
+
+<ul>
+<li> If Python is already installed and its version is lower than 2.7.9 update to a version &gt;= 2.7.9 OR install <a href="http://www.lfd.uci.edu/%7Egohlke/pythonlibs/#setuptools">setuptools</a> &amp; <a href="http://www.lfd.uci.edu/%7Egohlke/pythonlibs/#pip">pip</a>(package manager) </li>
+</ul>
+</li>
+<li>Update the <code>PATH</code> to include a reference to the <code>Python</code> and <code>Python/scripts</code> directories (replace <code>C:\Python27</code> with your path to Python).
+
+<ul>
+<li>Command Line: Run this command with Administrator privileges: <code>SETX /M PATH "%PATH%";C:\Python27;C:\Python27\Scripts</code>. The new path will be available in the next opened terminal.</li>
+<li>GUI: <code>Control Panel &gt; System Properties &gt; Advanced &gt; Environment Variables &gt; System Variables &gt; Path &gt; Edit &gt;</code> Add <code>;C:\Python27;C:\Python27\Scripts</code> to the end of the line.</li>
+</ul>
+</li>
+<li> Install <a href="http://download.microsoft.com/download/A/5/4/A54BADB6-9C3F-478D-8657-93B3FC9FE62D/vcsetup.exe">VC2008 Express</a> (alt: mingw)</li>
+<li> Install <a href="http://www.postgresql.org/download/windows/">PostgreSQL</a> ( <strong>x86 version! even if you have 64 bit os</strong> )
+
+<ul>
+<li>Add its bin folder to your path: <code>C:\Program Files (x86)\PostgreSQL\9.4\bin\</code>
+</li>
+</ul>
+</li>
+<li> Install <a href="http://windows.github.com/">GitHub for windows</a> and get the code</li>
+<li> <code>cd</code> to the anyway directory</li>
+<li> <code>pip install -r requirements.txt</code>
+
+<ul>
+<li>If any package fails to install, download it from <a href="http://www.lfd.uci.edu/%7Egohlke/pythonlibs">here</a> and install it using <code>pip install &lt;package&gt;</code>. </li>
+<li>If this fails, you might have to download the <code>win32</code> package, even if you are on a 64-bit platform. </li>
+<li>Currently, the packages <code>pyproj</code> and <code>psycopg2</code> are failing to install so for both of them, you need to download and install the <code>cp27 win32</code> version, even if you have a 64 bit Windows version installed.
+
+<ul>
+<li><a href="http://www.stickpeople.com/projects/python/win-psycopg/">http://www.stickpeople.com/projects/python/win-psycopg/</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+
+<h2>
+<a id="local-first-run-all-platforms" class="anchor" href="#local-first-run-all-platforms" aria-hidden="true"><span class="octicon octicon-link"></span></a>Local first run (all platforms)</h2>
+
+<ol>
+<li>
+<p>Define connection string (needs to be defined whenever you start working):</p>
+
+<ul>
+<li>bash: <code>export DATABASE_URL='sqlite:///local.db'</code>
+</li>
+<li>windows shell: <code>set DATABASE_URL=sqlite:///local.db</code>
+</li>
+</ul>
+</li>
+<li><p>First time, create tables: <code>python models.py</code></p></li>
+<li>Optionally, get the <a href="https://drive.google.com/file/d/0B4yX8HDe1VaTdWdPMXV5c2gycW8/view?usp=sharing">complete accidents file</a> after sending a permission request, and extract it into <code>/static/data/lms</code>. Otherwise you'll use the <a href="https://drive.google.com/file/d/0B4yX8HDe1VaTSjNMUXYyeW4yQkk/view?usp=sharing">example accidents file</a> that you already got with the code, so no need to get it again.</li>
+<li>Populate the data (markers etc.): <code>python process.py</code>: this will take less than an hour if you're using the example files (default), but if you have the complete data it may take several days. Be prepared.</li>
+<li>Populate united hatzala sample data: <code>python united.py --light</code> for the complete, or more recent data please contact the Anyway team.</li>
+<li>Run the app: <code>python main.py</code>: do this whenever you start working and want to try out your code.</li>
+<li>Browse to <a href="http://127.0.0.1:5000">http://127.0.0.1:5000</a>
+</li>
+<li>If the site fails to load properly, make sure you have JDK installed on your machine</li>
+</ol>
+
+<p>It is useful to add the following to your <code>~/.bashrc</code> (fixing for the correct path):</p>
+
+<pre><code>alias anyway='cd *path*/anyway &amp;&amp; workon anyway &amp;&amp; export DATABASE_URL=sqlite:///local.db'
+</code></pre>
+
+<p>Then you can simply start working by running the <code>anyway</code> command.</p>
+
+<h2>
+<a id="ide" class="anchor" href="#ide" aria-hidden="true"><span class="octicon octicon-link"></span></a>IDE</h2>
+
+<p><a href="https://www.jetbrains.com/pycharm">PyCharm</a> is recommended for development.</p>
+
+<h2>
+<a id="testing" class="anchor" href="#testing" aria-hidden="true"><span class="octicon octicon-link"></span></a>Testing</h2>
+
+<p>Server side testing cand be done by adding python tests under <code>tests</code> folder, using a <code>test_*.py</code> file name pattern.</p>
+
+<p>To run tests: <code>python -m unittest discover ./tests</code>.</p>
+
+<h2>
+<a id="heroku-deployment" class="anchor" href="#heroku-deployment" aria-hidden="true"><span class="octicon octicon-link"></span></a>Heroku deployment</h2>
+
+<ol>
+<li>Create an account on <a href="http://heroku.com">Heroku</a>
+</li>
+<li>Install the <a href="https://toolbelt.heroku.com">Heroku toolbelt</a>
+</li>
+<li>Follow the <a href="https://devcenter.heroku.com/articles/quickstart">quickstart instructions</a>. On step #4, read the <a href="https://devcenter.heroku.com/articles/getting-started-with-python">Python introduction</a>
+</li>
+<li>Create an app, e.g. anyway-<em>you</em>
+</li>
+<li>Sign up for a free Heroku Postgres add-on (note that you'll have to enter your credit card details to be eligible): <code>heroku addons:add heroku-postgresql:hobby-dev</code>
+</li>
+<li>Push from your Git repository to Heroku</li>
+<li>Populate the database with the data (assuming you have it in your local directory):
+
+<ol>
+<li>Copy the database URL from your Heroku config: <code>heroku config:get DATABASE_URL</code> (if you have several apps, specify the relevant one with the option <code>--app &lt;anyway-*you*&gt;</code> for any Heroku command)</li>
+<li>Create tables: <code>python models.py</code>
+</li>
+<li>Populate data: <code>python process.py</code>
+</li>
+</ol>
+</li>
+<li>Browse to http://anyway-<em>you</em>.herokuapp.com</li>
+</ol>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/hasadna">hasadna</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
