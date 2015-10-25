@@ -13,7 +13,7 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from sqlalchemy import or_
 
 import field_names
-from models import Marker, Involved, Vehicle
+from models import Marker, Involved, Vehicle, MarkerIndex
 import models
 from utilities import ItmToWGS84, init_flask, CsvReader, time_delta
 import localization
@@ -394,6 +394,26 @@ def get_provider_code(directory_name=None):
             return int(ans)
 
 
+# Initialize marker index (RTree) table, for markers table
+def reinitialize_markers_index_table():
+    markers = Marker.get_all_markers_id_lat_lng()
+    # TODO: fix this unexpected side effect, could harm future use of function.
+    MarkerIndex.delete_table()
+    marker_indexes = list(_generate_marker_index_list(markers, MarkerIndex.create_index))
+    MarkerIndex.insert_indexes(marker_indexes)
+
+
+def _generate_marker_index_list(markers, creator):
+    try:
+        for i, marker in enumerate(markers):
+            marker_index = creator(marker)
+            yield marker_index
+    except AttributeError:
+        print ("Could not generate marker indexes, unappropriate marker object struture!")
+        raise
+
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--specific_folder', dest='specific_folder', action='store_true', default=False)
@@ -440,6 +460,8 @@ def main():
     print("Finished processing all directories{0}{1}".format(", except:\n" if failed else "",
                                                              "\n".join(failed)))
     print("Total: {0} items in {1}".format(total, time_delta(started)))
+    print("creating the respective marker index table (R-Tree) using the imported data")
+    reinitialize_markers_index_table()
 
 if __name__ == "__main__":
     main()

@@ -106,3 +106,10 @@ def time_delta(since):
     return " ".join('%d %s' % (getattr(delta, attr),
                                getattr(delta, attr) > 1 and attr or attr[:-1])
                     for attr in attrs if getattr(delta, attr))
+
+class File(object):
+    @staticmethod
+    def read(filename):
+       with open(filename) as file:
+           data = file.read()
+           return data

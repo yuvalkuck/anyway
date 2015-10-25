@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
- 
+import os
 from sqlalchemy import Column, Integer, String, Boolean, Float, ForeignKey, DateTime, Text, Index, desc, sql, Table, \
-        ForeignKeyConstraint, func, or_
+        ForeignKeyConstraint, func, or_, event
 from sqlalchemy.orm import relationship, load_only, backref
 
 import datetime
@@ -12,6 +12,10 @@ import localization
 from database import Base
 from flask.ext.security import Security, SQLAlchemyUserDatastore, \
         UserMixin, RoleMixin, login_required
+from markerindex_provider import create_provider
+import pysqlite2
+import config
+
 
 db_encoding = 'utf-8'
 
@@ -252,6 +256,8 @@ class Marker(MarkerMixin, Base): # TODO rename to AccidentMarker
         approx = kwargs.get('approx', True)
         accurate = kwargs.get('accurate', True)
 
+        marker_indexes_result = MarkerIndex.get_bounding_indexes(kwargs['ne_lat'], kwargs['ne_lng'], kwargs['sw_lat'], kwargs['sw_lng'])
+
         if not kwargs.get('show_markers', True):
             return Marker.query.filter(sql.false())
         markers = Marker.query \
@@ -261,7 +267,8 @@ class Marker(MarkerMixin, Base): # TODO rename to AccidentMarker
             .filter(Marker.latitude >= kwargs['sw_lat']) \
             .filter(Marker.created >= kwargs['start_date']) \
             .filter(Marker.created < kwargs['end_date']) \
-            .order_by(desc(Marker.created))
+            .order_by(desc(Marker.created))\
+            .filter(Marker.id.in_(marker_indexes_result))
         if yield_per:
             markers = markers.yield_per(yield_per)
         if accurate and not approx:
@@ -339,6 +346,10 @@ class Marker(MarkerMixin, Base): # TODO rename to AccidentMarker
     def get_marker(marker_id):
         return Marker.query.filter_by(id=marker_id)
 
+    @staticmethod
+    def get_all_markers_id_lat_lng():
+        return Marker.query.options(load_only("id", "provider_code", "longitude", "latitude")).all()
+
     @classmethod
     def parse(cls, data):
         return Marker(
@@ -349,6 +360,35 @@ class Marker(MarkerMixin, Base): # TODO rename to AccidentMarker
             longitude=data["longitude"]
         )
 
+
+@event.listens_for(Marker, 'after_insert')
+def receive_after_insert(mapper, connection, target):
+    #Todo - needs to be fixed - for now, we need to remake all the the indexes after every insert
+    MarkerIndex.insert_indexes(target.id, target.longitude, target.latitude)
+    #insert_marker_rtree_index(connection, target.id, target.longitude, target.latitude)
+
+class MarkerIndex(object):
+    provider = create_provider()
+
+    @staticmethod
+    def insert_indexes(indexes):
+        MarkerIndex.provider.insert_indexes(indexes)
+
+    @staticmethod
+    def delete_table():
+        MarkerIndex.provider.delete_table()
+
+    @staticmethod
+    def create_table():
+        MarkerIndex.provider.create_table()
+
+    @staticmethod
+    def create_index(marker):
+        return MarkerIndex.provider.create_index(marker)
+
+    @staticmethod
+    def get_bounding_indexes(ne_lat, ne_lng, sw_lat, sw_lng):
+        return MarkerIndex.provider.get_bounding_indexes(ne_lat, ne_lng, sw_lat, sw_lng)
 
 class DiscussionMarker(MarkerMixin, Base):
     __tablename__ = "discussions"
@@ -532,6 +572,8 @@ def init_db():
     print "Importing models"
     print "Creating all tables"
     Base.metadata.create_all(bind=engine)
+    print "Creating marker location indexes (R-Tree) table"
+    MarkerIndex.create_table()
 	
 if __name__ == "__main__":
     init_db()
