@@ -28,6 +28,7 @@ Contributing
 
 ### Ubuntu
 1. `sudo apt-get install python-pip python-dev python-tk libpq-dev`
+2. `sudo apt-get install sqlite3 libsqlite3-dev`
 
 ### OS X
 1. `sudo easy_install pip setuptools`
