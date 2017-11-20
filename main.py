@@ -63,6 +63,14 @@ def registered_vehicles(specific_folder, delete_all, path):
 
     return main(specific_folder=specific_folder, delete_all=delete_all, path=path)
 
+@process.command()
+@click.option('--delete_all', is_flag=True)
+@click.option('--load_history', is_flag=True)
+def twitter(load_history, delete_all):
+    from anyway.parsers.twitters import main
+
+    return main(load_history=load_history,delete_all=delete_all)
+
 
 @process.command()
 @click.option('--light', is_flag=True, help='Import without downloading any new files')

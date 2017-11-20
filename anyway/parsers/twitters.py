@@ -1,29 +1,19 @@
 # -*- coding: utf-8 -*-
-import csv
 import json
-import glob
-import io
-import logging
-import os
-import re
-import sys
 from datetime import datetime
+
+import logging
 import tweepy
-from tweepy.streaming import StreamListener
-from tweepy import OAuthHandler, Stream
-
-import six
 from flask.ext.sqlalchemy import SQLAlchemy
+from tweepy import OAuthHandler
+from tweepy.streaming import StreamListener
 
-from ..models import RegisteredVehicle, City
-from ..utilities import init_flask, time_delta
+from ..utilities import init_flask
 
-# Headless servers cannot use GUI file dialog and require raw user input
-fileDialog = True
-try:
-    import tkFileDialog
-except (ValueError, ImportError):
-    fileDialog = False
+CONSUMER_KEY = 'xC8S9xrsS1pFa82EeFe5h2zjX'
+CONSUMER_SECRET = 'GhC5nTdmhdhbPGFCGFbnMoK1OR1J7m2RdnnyxaVeKFJCr9kAVb'
+ACCESS_TOKEN = '930058064773959681-NRoWXRzmQ8lWQdF3TYfbKE4EDlbz0GE'
+ACCESS_TOKEN_SECRET = '3DLMcGV6UUgPFfLBU9SO8Ayo19g8l8H6JiAKP327Vzd8b'
 
 app = init_flask()
 db = SQLAlchemy(app)
@@ -39,12 +29,7 @@ class StdOutListener(StreamListener):
         print status
 
 
-def main(delete_all):
-    CONSUMER_KEY = 'xC8S9xrsS1pFa82EeFe5h2zjX'
-    CONSUMER_SECRET = 'GhC5nTdmhdhbPGFCGFbnMoK1OR1J7m2RdnnyxaVeKFJCr9kAVb'
-    ACCESS_TOKEN = '930058064773959681-NRoWXRzmQ8lWQdF3TYfbKE4EDlbz0GE'
-    ACCESS_TOKEN_SECRET = '3DLMcGV6UUgPFfLBU9SO8Ayo19g8l8H6JiAKP327Vzd8b'
-
+def main(load_history, delete_all):
     l = StdOutListener()
     auth = OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
     auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
@@ -55,15 +40,17 @@ def main(delete_all):
     # query = u'התקבל דיווח במוקד 101 של מד"א'
     query = u'התקבל דיווח במוקד 101'
     cp1255 = 'cp1255'
-    searched_tweets = [status._json for status in tweepy.Cursor(api.search, q=query,lang='he',result_type="recent",tweet_mode='extended').items(50)]
+    searched_tweets = [status._json for status in
+                       tweepy.Cursor(api.search, q=query, lang='he', result_type="recent", tweet_mode='extended').items(
+                           50)]
     json_strings = [json.dumps(json_obj) for json_obj in searched_tweets]
     for item in json_strings:
         struct = json.loads(item)
-        if( struct['full_text'].encode('utf-8').find('...') >= 0):
+        if (struct['full_text'].encode('utf-8').find('...') >= 0):
             continue
         # if( struct['text'].find(u'דוברות מד"א') > 0):
         #     continue
-        print struct['created_at'].encode('utf-8')+"-:-"+struct['full_text'].encode('utf-8')
+        print struct['created_at'].encode('utf-8') + "-:-" + struct['full_text'].encode('utf-8')
         print "--------------------------\n"
 
     # stream = Stream(auth, l)
