@@ -7,8 +7,7 @@ import tweepy
 from flask.ext.sqlalchemy import SQLAlchemy
 from tweepy import OAuthHandler
 from tweepy.streaming import StreamListener
-
-from ..utilities import init_flask
+from ..utilities import init_flask, time_delta, CsvReader, ImporterUI, truncate_tables,decode_hebrew
 
 CONSUMER_KEY = 'xC8S9xrsS1pFa82EeFe5h2zjX'
 CONSUMER_SECRET = 'GhC5nTdmhdhbPGFCGFbnMoK1OR1J7m2RdnnyxaVeKFJCr9kAVb'
@@ -46,9 +45,9 @@ def main(load_history, delete_all):
     json_strings = [json.dumps(json_obj) for json_obj in searched_tweets]
     for item in json_strings:
         struct = json.loads(item)
-        if (struct['full_text'].encode('utf-8').find('...') >= 0):
-            continue
-        # if( struct['text'].find(u'דוברות מד"א') > 0):
+        # if(match_one(struct['full_text'],(u'...',u'אירוע דריסה',u'מאופניים חשמליים')) == True):
+        #     continue
+        # if(match_one(struct['full_text'],(u'שנפגע מרכב',u'רכב שהתהפך',u'שנפגע מרכב',u' ת"ד ')) == False):
         #     continue
         print struct['created_at'].encode('utf-8') + "-:-" + struct['full_text'].encode('utf-8')
         print "--------------------------\n"
@@ -69,6 +68,13 @@ def main(load_history, delete_all):
     #         db.session.query(table).delete()
     #         db.session.commit()
 
-    started = datetime.now()
+    # started = datetime.now()
 
     # db.session.commit()
+
+def match_one(text,matches,encode='utf-8'):
+    encoded = decode_hebrew(text,encode)
+    for match in matches:
+        if( encoded.find(match) >= 0):
+            return True
+    return False
