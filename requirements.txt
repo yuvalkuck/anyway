@@ -29,4 +29,4 @@ requests
 click
 six
 celery[redis]
-tweepy==3.5.0
+facebook-sdk==2.0.0
