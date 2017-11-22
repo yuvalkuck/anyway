@@ -65,7 +65,7 @@ def registered_vehicles(specific_folder, delete_all, path):
 
 @process.command()
 def facebook():
-    from anyway.parsers.facebook import main
+    from anyway.parsers.fb_feed import main
     return main()
 
 

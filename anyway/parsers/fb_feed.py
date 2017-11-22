@@ -2,14 +2,16 @@
 import json
 from datetime import datetime
 import logging
-import facebook
 from flask.ext.sqlalchemy import SQLAlchemy
 from ..utilities import init_flask, time_delta, decode_hebrew
+import facebook
 
-CONSUMER_KEY = 'xC8S9xrsS1pFa82EeFe5h2zjX'
-CONSUMER_SECRET = 'GhC5nTdmhdhbPGFCGFbnMoK1OR1J7m2RdnnyxaVeKFJCr9kAVb'
-ACCESS_TOKEN = '930058064773959681-NRoWXRzmQ8lWQdF3TYfbKE4EDlbz0GE'
-ACCESS_TOKEN_SECRET = '3DLMcGV6UUgPFfLBU9SO8Ayo19g8l8H6JiAKP327Vzd8b'
+ACCESS_PAGE_ID = u'עדכוני-חדשות-601595769890923'
+
+APP_ID = '156391101644523'
+APP_SECRET = '02137c44e7ce09b1e708bc8edc9e7c69'
+CLIENT_SECRET = '5823a2f9c966291009b8a42fb52b8cdf'
+KIT_API_VER = '1.0'
 
 app = init_flask()
 db = SQLAlchemy(app)
@@ -18,6 +20,8 @@ db = SQLAlchemy(app)
 
 
 def main():
+    api = facebook.GraphAPI()
+    access_token = api.get_app_access_token(APP_ID,APP_SECRET)
     pass
     # wipe all data first
     # if delete_all:
