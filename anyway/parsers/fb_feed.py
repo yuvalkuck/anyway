@@ -48,8 +48,15 @@ class ProcessParser(object):
                 msg = post['message']
                 if msg.find(u'התקבל דיווח במוקד 101') < 0:
                     continue
-                print msg + "\n"
-        pass
+                if self.has_one_of(msg, (u'נפגע מרכב', u'על תאונה', u'רוכב אופנוע', u'')):
+                    print msg + "\n"
+
+    def has_one_of(self, msg, cases):
+        for case in cases:
+            if msg.find(case) > 0:
+                return True
+        return False
+
 
 
 def main():
