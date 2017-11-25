@@ -6,23 +6,34 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from ..utilities import init_flask, time_delta, decode_hebrew
 import facebook
 
-ACCESS_PAGE_ID = u'עדכוני-חדשות-601595769890923'
+PAGE_NEWS_UPDATES_CODE = '601595769890923'
 
+# APP_... from app dashboard
 APP_ID = '156391101644523'
-APP_SECRET = '02137c44e7ce09b1e708bc8edc9e7c69'
-CLIENT_SECRET = '5823a2f9c966291009b8a42fb52b8cdf'
-KIT_API_VER = '1.0'
+APP_SECRET = '8012d05ce67928871140ca924f29b58f'
+# CLIENT_SECRET = '5823a2f9c966291009b8a42fb52b8cdf'
 
 app = init_flask()
 db = SQLAlchemy(app)
+
 
 # ##################################################################
 
 
 def main():
     api = facebook.GraphAPI()
-    access_token = api.get_app_access_token(APP_ID,APP_SECRET)
-    pass
+    try:
+        api.access_token = api.get_app_access_token(APP_ID, APP_SECRET)
+    except facebook.GraphAPIError as e:
+        logging.error('can not obtain access token,abort (%s)'.format(e.message))
+        return
+
+    response_posts = api.get_object(PAGE_NEWS_UPDATES_CODE+'/posts')
+    # posts
+    for post in response_posts['data']:
+        if post.has_key('message'):
+            print post['id']+'::'+post['created_time']+"-:-"+post['message']+"\n"
+
     # wipe all data first
     # if delete_all:
     #     tables = (RegisteredVehicle)
@@ -35,9 +46,10 @@ def main():
 
     # db.session.commit()
 
-def match_one(text,matches,encode='utf-8'):
-    encoded = decode_hebrew(text,encode)
+
+def match_one(text, matches, encode='utf-8'):
+    encoded = decode_hebrew(text, encode)
     for match in matches:
-        if( encoded.find(match) >= 0):
+        if (encoded.find(match) >= 0):
             return True
     return False
