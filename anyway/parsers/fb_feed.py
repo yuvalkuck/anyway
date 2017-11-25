@@ -28,28 +28,13 @@ def main():
         logging.error('can not obtain access token,abort (%s)'.format(e.message))
         return
 
-    response_posts = api.get_object(PAGE_NEWS_UPDATES_CODE+'/posts')
-    # posts
-    for post in response_posts['data']:
-        if post.has_key('message'):
-            print post['id']+'::'+post['created_time']+"-:-"+post['message']+"\n"
-
-    # wipe all data first
-    # if delete_all:
-    #     tables = (RegisteredVehicle)
-    #     logging.info("Deleting tables: " + ", ".join(table.__name__ for table in tables))
-    #     for table in tables:
-    #         db.session.query(table).delete()
-    #         db.session.commit()
-
-    # started = datetime.now()
-
-    # db.session.commit()
-
-
-def match_one(text, matches, encode='utf-8'):
-    encoded = decode_hebrew(text, encode)
-    for match in matches:
-        if (encoded.find(match) >= 0):
-            return True
-    return False
+    try:
+        response_posts = api.get_object(PAGE_NEWS_UPDATES_CODE+'/posts')
+        for post in response_posts['data']:
+            if post.has_key('message'):
+                msg = post['message']
+                if msg.find(u'התקבל דיווח במוקד 101') < 0:
+                    continue
+                print post['id']+'::'+post['created_time']+"-:-"+msg+"\n"
+    except facebook.GraphAPIError as e:
+        logging.error('can not obtain posts,abort (%s)'.format(e.message))
