@@ -26,7 +26,7 @@ class ProcessParser(object):
     def __init__(self):
         try:
             self._api = GraphAPI()
-            # self._api.access_token = self._api.get_app_access_token(APP_ID, APP_SECRET)
+            self._api.access_token = self._api.get_app_access_token(APP_ID, APP_SECRET)
             self._posts = ()
         except GraphAPIError as e:
             logging.error('can not obtain access token,abort (%s)'.format(e.message))
@@ -36,7 +36,7 @@ class ProcessParser(object):
 
     def read_data(self):
 
-        self._posts = (
+        self._posts = [
             {
                 'message': u'*דובר מד"א, זכי הלר  בשעה 20:31 התקבל דיווח במוקד 101 של מד"א במרחב איילון על רוכב אופניים חשמליים שנפגע מרכב בשדרות דוד המלך בלוד. חובשים ופראמדיקים של מד"א מעניקים טיפול רפואי ומפנים לבי"ח אסף הרופא  צעיר כבן 22 במצב בינוני עם חבלות ראש ובגב.'},
             {
@@ -51,7 +51,7 @@ class ProcessParser(object):
                 'message': u'*דובר מד"א, זכי הלר :*הבוקר בשעה 05:51 התקבל דיווח במוקד 101 של מד"א במרחב נגב, על הולך רגל שנפגע מרכב ברחוב נסים אלקיים, סמוך למועדון הפורום. בבאר שבע. חובשים ופראמדיקים של מד"א העניקו טיפול רפואי ופינו לבי"ח סורוקה צעיר כבן 22 במצב בינוני עם חבלות בבטן ובגפיים.'},
             {
                 'message': u'*דובר מד"א, זכי הלר  בשעה 08:49 התקבל דיווח במוקד 101 של מד"א במרחב נגב על שני רוכבי אופניים שהחליקו בשביל עפר סמוך למושב מסלול. חובשים ופראמדיקים של מד"א העניקו טיפול רפואי ופינו לבי"ח סורוקה גבר כבן 48 במצב בינוני, עם חבלות בראש, בחזה ובגפיים, ופצוע נוסף במצב קל.'}
-        )
+        ]
         return True
         if not self.has_access():
             return False
@@ -64,6 +64,7 @@ class ProcessParser(object):
         return True
 
     def parse(self):
+        suitable_posts = []
         for post in self._posts:
             if post.has_key('message'):
                 msg = post['message']
@@ -74,8 +75,13 @@ class ProcessParser(object):
                               msg.find(PARSE_END_INDICATOR) + len(PARSE_END_INDICATOR):msg.find(PARSE_START_INDICATOR)]
                     address_of = self.find_address(subject, (u'ברחוב', u"ברח'", u'בשדרות', u"בשד'", u'בדרך'))
                     if address_of > 0:
-                        address = subject[address_of:]
-                        print address + "\n"
+                        suitable_posts.append({
+                            'post': post,
+                            'searchin': subject[address_of:],
+                        })
+
+        for post in suitable_posts:
+            print post['searchin'] + "\n"
 
     @staticmethod
     def has_one_of(msg, cases):
@@ -94,12 +100,19 @@ class ProcessParser(object):
 
 
 def main():
-    #    msg = u'*דובר מד"א, זכי הלר  בשעה 20:31 התקבל דיווח במוקד 101 של מד"א במרחב איילון על רוכב אופניים חשמליים שנפגע מרכב בשדרות דוד המלך בלוד. חובשים ופראמדיקים של מד"א מעניקים טיפול רפואי ומפנים לבי"ח אסף הרופא  צעיר כבן 22 במצב בינוני עם חבלות ראש ובגב.'
-    # msg = u'כרמל על רוכב אופנוע שנפגע ממשאית בכביש 70 על גשר מחלף יגור לכיוון צפון.'
-    # subject = msg[msg.find(PARSE_END_INDICATOR) + len(PARSE_END_INDICATOR):msg.find(PARSE_START_INDICATOR)]
-
     parser = ProcessParser()
     if not parser.read_data():
         logging.debug('no data to process,abort')
         return
     parser.parse()
+
+# WITH onlycity AS
+#   (SELECT m.id,
+#           m.severity,
+#           m.created,
+#           extract(dow from m.created) day_of_week,
+#           m."dayType" day_type,
+#           c.search_heb as city_name,
+#    			c.search_priority,
+#    			strpos(c.search_heb, m.address) as address_index,
+#    			ROW_NUMBER() OVER(PARTITION BY m.id ORDER BY c.search_priority desc, strpos(c.search_heb, m.address) desc) as rn
