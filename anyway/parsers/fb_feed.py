@@ -79,7 +79,7 @@ class ProcessParser(object):
                     if address_of > 0:
                         suitable_posts.append({
                             'post': post,
-                            'searchin': subject[address_of:],
+                            'searchin': subject[address_of:].strip(u' .'),
                         })
 
         if not suitable_posts:
@@ -94,9 +94,7 @@ class ProcessParser(object):
                 if criteria_pos >= 0:
                     post['city_symbol_code'] = city.symbol_code
                     post['city_pos'] = criteria_pos
-                    post['search_address'] = post['searchin'][:criteria_pos]
-
-        print suitable_posts
+                    post['search_address'] = post['searchin'][:criteria_pos].strip()
 
     @staticmethod
     def has_one_of(msg, cases):
