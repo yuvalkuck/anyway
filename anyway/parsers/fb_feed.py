@@ -5,6 +5,7 @@ import logging
 from facebook import GraphAPI, GraphAPIError
 from flask.ext.sqlalchemy import SQLAlchemy
 
+from ..models import City
 from ..utilities import init_flask
 
 PAGE_NEWS_UPDATES_CODE = '601595769890923'
@@ -27,7 +28,8 @@ class ProcessParser(object):
         try:
             self._api = GraphAPI()
             self._api.access_token = self._api.get_app_access_token(APP_ID, APP_SECRET)
-            self._posts = ()
+            self._posts = []
+            self._city_criteria = []
         except GraphAPIError as e:
             logging.error('can not obtain access token,abort (%s)'.format(e.message))
 
@@ -80,8 +82,21 @@ class ProcessParser(object):
                             'searchin': subject[address_of:],
                         })
 
+        if not suitable_posts:
+            return  # we found nothing - no need to process anything
+        self._city_criteria = db.session.query(City.id, City.search_heb, City.symbol_code) \
+            .order_by(City.search_priority.desc()) \
+            .all()
         for post in suitable_posts:
-            print post['searchin'] + "\n"
+            for city in self._city_criteria:
+                criteria = u'ב' + city.search_heb
+                criteria_pos = post['searchin'].find(criteria)
+                if criteria_pos >= 0:
+                    post['city_symbol_code'] = city.symbol_code
+                    post['city_pos'] = criteria_pos
+                    post['search_address'] = post['searchin'][:criteria_pos]
+
+        print suitable_posts
 
     @staticmethod
     def has_one_of(msg, cases):
