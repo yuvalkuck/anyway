@@ -4,6 +4,8 @@ import logging
 
 from facebook import GraphAPI, GraphAPIError
 from flask.ext.sqlalchemy import SQLAlchemy
+from itertools import repeat
+import requests
 
 from ..models import City
 from ..utilities import init_flask
@@ -13,8 +15,10 @@ PAGE_NEWS_UPDATES_CODE = '601595769890923'
 # APP_... from app dashboard
 APP_ID = '156391101644523'
 APP_SECRET = '8012d05ce67928871140ca924f29b58f'
-PARSE_START_INDICATOR = u'חובשים ופראמדיקים'
-PARSE_END_INDICATOR = u'התקבל דיווח במוקד 101 של מד"א במרחב'
+MADA_END_ADDRESS_MARKER = u'חובשים ופראמדיקים'
+MADA_TEXT_INDICATOR = u'התקבל דיווח במוקד 101 של מד"א במרחב'
+IHUD_TEXT_INDICATOR = u'דוברות איחוד הצלה:'
+IGNORE_STORY_INDICATOR = u'‎עדכוני חדשות‎ shared a link'
 REGEX_HEBREW_RANGE = u'ת..א'
 
 app = init_flask()
@@ -39,6 +43,7 @@ class ProcessHandler(object):
     def has_access(self):
         return self._api.access_token is not None
 
+    @property
     def read_data(self):
 
         # self._posts = [
@@ -66,32 +71,44 @@ class ProcessHandler(object):
         try:
             response_posts = self._api.get_object(PAGE_NEWS_UPDATES_CODE + '/posts')
             self._posts = response_posts['data']
+            for idx in repeat(None, 10):
+                response_posts = requests.request('GET', response_posts['paging']['next']).json()
+                self._posts += response_posts['data']
         except GraphAPIError as e:
             logging.error('can not obtain posts,abort (%s)'.format(e.message))
             return False
         return True
 
     def get_provider_parser(self, msg):
-        if msg.find(PARSE_END_INDICATOR) >= 0:
+        if msg.find(MADA_TEXT_INDICATOR) >= 0:
             return MadaParser()
+        if msg.find(IHUD_TEXT_INDICATOR) >= 0:
+            return EhudHazalaParser()
         return None
 
     def process(self):
         for post in self._posts:
-            if post.has_key('message'):
-                parser = self.get_provider_parser(post['message'])
-                if parser is None:
+            if 'message' not in post:
+                if 'story' in post:
+                    post['message'] = post['story']
+                else:
                     continue
-                location = parser.parse(post)
-                if location is None:
-                    continue
-                print location['message']
+
+            parser = self.get_provider_parser(post['message'])
+            if parser is None:
+                continue
+            location = parser.parse(post)
+            if location is None:
+                continue
+            print location['message']
+
+
+class EhudHazalaParser(object):
+    def parse(self, post):
+        return None
 
 
 class MadaParser(object):
-    def __init__(self):
-        pass
-
     @staticmethod
     def has_one_of(msg, cases):
         for case in cases:
@@ -111,8 +128,8 @@ class MadaParser(object):
         msg = post['message']
         if self.has_one_of(msg, (u'נפגע מרכב', u'על תאונה', u'רוכב אופנוע')):
             subject = msg[
-                      msg.find(PARSE_END_INDICATOR) + len(PARSE_END_INDICATOR):msg.find(PARSE_START_INDICATOR)]
-            address_of = self.find_address(subject, (u'ברחוב', u"ברח'", u'בשדרות', u"בשד'", u'בדרך'))
+                      msg.find(MADA_TEXT_INDICATOR) + len(MADA_TEXT_INDICATOR):msg.find(MADA_END_ADDRESS_MARKER)]
+            address_of = self.find_address(subject, (u' ברחוב', u" ברח'", u' בשדרות', u" בשד'", u' בדרך'))
             if address_of > 0:
                 searchin = subject[address_of:].strip(u' .')
                 for city in _city_criteria:
@@ -131,7 +148,7 @@ class MadaParser(object):
 
 def main():
     handler = ProcessHandler()
-    if not handler.read_data():
+    if not handler.read_data:
         logging.debug('no data to process,abort')
         return
     handler.process()
