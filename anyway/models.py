@@ -518,6 +518,7 @@ class City(Base):
     symbol_code = Column(Integer)
     name = Column(String)
     search_heb = Column(String)
+    shortname_heb = Column(String)
     search_eng = Column(String)
     search_priority = Column(Integer)
 
@@ -527,6 +528,7 @@ class City(Base):
             "symbol_code": self.symbol_code,
             "name": self.name,
             "search_heb": self.search_heb,
+            "shortname_heb": self.shortname_heb,
             "search_eng": self.search_eng,
             "search_priority": self.search_priority
         }
