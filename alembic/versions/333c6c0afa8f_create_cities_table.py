@@ -19,14 +19,16 @@ import sqlalchemy as sa
 from sqlalchemy.sql import table, column
 from sqlalchemy import String, Integer
 
+TABLE_NAME = 'cities'
+
 
 def downgrade():
-    op.drop_table('cities')
+    op.drop_table(TABLE_NAME)
 
 
 def upgrade():
     op.create_table(
-        'cities',
+        TABLE_NAME,
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('symbol_code', sa.Integer(), nullable=False),
         sa.Column('name', sa.String(length=100), nullable=False),
@@ -37,7 +39,7 @@ def upgrade():
         sa.UniqueConstraint('search_heb')
     )
 
-    cities_table = table('cities',
+    cities_table = table(TABLE_NAME,
                          column('search_priority', Integer()),
                          column('search_heb', String()),
                          column('name', String()),
