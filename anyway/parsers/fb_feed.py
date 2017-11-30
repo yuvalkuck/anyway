@@ -6,6 +6,7 @@ from facebook import GraphAPI, GraphAPIError
 from flask.ext.sqlalchemy import SQLAlchemy
 from itertools import repeat
 import requests
+import pickle
 
 from ..models import City
 from ..utilities import init_flask
@@ -17,7 +18,7 @@ APP_ID = '156391101644523'
 APP_SECRET = '8012d05ce67928871140ca924f29b58f'
 MADA_END_ADDRESS_MARKER = u'חובשים ופראמדיקים'
 MADA_TEXT_INDICATOR = u'התקבל דיווח במוקד 101 של מד"א במרחב'
-IHUD_TEXT_INDICATOR = u'דוברות איחוד הצלה:'
+EHUD_TEXT_INDICATOR = u'דוברות איחוד הצלה:'
 IGNORE_STORY_INDICATOR = u'‎עדכוני חדשות‎ shared a link'
 REGEX_HEBREW_RANGE = u'ת..א'
 
@@ -35,8 +36,12 @@ class ProcessHandler(object):
     def __init__(self):
         try:
             self._api = GraphAPI()
-            self._api.access_token = self._api.get_app_access_token(APP_ID, APP_SECRET)
+            # self._api.access_token = self._api.get_app_access_token(APP_ID, APP_SECRET)
             self._posts = []
+            self._parsers_dict = {
+                MADA_TEXT_INDICATOR: MadaParser(),
+                EHUD_TEXT_INDICATOR: EhudHazalaParser()
+            }
         except GraphAPIError as e:
             logging.error('can not obtain access token,abort (%s)'.format(e.message))
 
@@ -45,26 +50,10 @@ class ProcessHandler(object):
 
     @property
     def read_data(self):
-
-        # self._posts = [
-        #     {
-        #         'message': u'*דובר מד"א, זכי הלר  בשעה 20:31 התקבל דיווח במוקד 101 של מד"א במרחב איילון על רוכב אופניים חשמליים שנפגע מרכב בשדרות דוד המלך בלוד. חובשים ופראמדיקים של מד"א מעניקים טיפול רפואי ומפנים לבי"ח אסף הרופא  צעיר כבן 22 במצב בינוני עם חבלות ראש ובגב.'},
-        #     {
-        #         'message': u'*דובר מד"א, זכי הלר  בשעה 20:56 התקבל דיווח במוקד 101 של מד"א במרחב ירושלים על צעיר שנדקר ככה"נ במהלך קטטה ברח\' צונדק בשכונת רמות בירושלים. חובשים ופראמדיקים של מד"א מעניקים טיפול רפואי ומפנים לבי"ח צעיר כבן 25 במצב בהכרה עם פצע דקירה בפלג גופו העליון.'},
-        #     {
-        #         'message': u'*דובר מד"א, זכי הלר  בשעה 18:50 התקבל דיווח במוקד 101 של מד"א במרחב גלבוע על תאונה חזיתית בין שני כלי רכב בכביש 79 בין משהד לציפורי. חובשים ופראמדיקים של מד"א מעניקים טיפול רפואי ומפנים לבי"ח 2 פצועים במצב בינוני, מהם: גבר כבן 64 עם חבלת חזה מפונה לבי"ח העמק.  וגבר כבן 49 עם חבלת חזה מפונה לבי"ח האיטלקי בנצרת.'},
-        #     {
-        #         'message': u'*דובר מד"א, זכי הלר  בשעה 17:07 התקבל דיווח במוקד 101 של מד"א במרחב איילון על רוכב אופניים חשמליים שנפגע מרכב בשדרות מיכה רייסר בלוד. חובשים ופראמדיקים של מד"א מעניקים טיפול רפואי ומפנים לבי"ח אסף הרופא  ילד כבן 11 במצב בינוני עם חבלת ראש.'},
-        #     {
-        #         'message': u'*דובר מד"א, זכי הלר  בשעה 13:34 התקבל דיווח במוקד 101 של מד"א במרחב ירדן על רוכב אופנוע שהחליק בשטח, סמוך לקיבוץ גדות. חובשים ופראמדיקים של מד"א מעניקים טיפול רפואי ומפנים לבי"ח זיו בצפת צעיר כבן 24 במצב בינוני, עם חבלות בגב ובגפיים.'},
-        #     {
-        #         'message': u'*דובר מד"א, זכי הלר :*הבוקר בשעה 05:51 התקבל דיווח במוקד 101 של מד"א במרחב נגב, על הולך רגל שנפגע מרכב ברחוב נסים אלקיים, סמוך למועדון הפורום. בבאר שבע. חובשים ופראמדיקים של מד"א העניקו טיפול רפואי ופינו לבי"ח סורוקה צעיר כבן 22 במצב בינוני עם חבלות בבטן ובגפיים.'},
-        #     {
-        #         'message': u'*דובר מד"א, זכי הלר  בשעה 08:49 התקבל דיווח במוקד 101 של מד"א במרחב נגב על שני רוכבי אופניים שהחליקו בשביל עפר סמוך למושב מסלול. חובשים ופראמדיקים של מד"א העניקו טיפול רפואי ופינו לבי"ח סורוקה גבר כבן 48 במצב בינוני, עם חבלות בראש, בחזה ובגפיים, ופצוע נוסף במצב קל.'},
-        #     {
-        #         'message': u' בשעה 08:11 התקבל דיווח במוקד 101 של מד"א במרחב איילון על אופנוע שנפגע מרכב ברחוב יוסף לישנסקי פינת האצ"ל בראשל"צ. חובשים ופראמדיקים של מד"א מעניקים טיפול רפואי ומפנים לבי"ח אסף הרופא צעיר כבן 26 במצב בינוני עם חבלות בגפיים.  ופצוע נוסף במצב קל לבי"ח וולפסון.'}
-        # ]
-        # return True
+        with open('dumppost254.txt', 'rb') as fh:
+            self._posts = pickle.Unpickler(fh).load()
+        print len(self._posts)
+        return True
 
         if not self.has_access():
             return False
@@ -81,9 +70,9 @@ class ProcessHandler(object):
 
     def get_provider_parser(self, msg):
         if msg.find(MADA_TEXT_INDICATOR) >= 0:
-            return MadaParser()
-        if msg.find(IHUD_TEXT_INDICATOR) >= 0:
-            return EhudHazalaParser()
+            return self._parsers_dict[MADA_TEXT_INDICATOR]
+        if msg.find(EHUD_TEXT_INDICATOR) >= 0:
+            return self._parsers_dict[EHUD_TEXT_INDICATOR]
         return None
 
     def process(self):
@@ -97,14 +86,14 @@ class ProcessHandler(object):
             parser = self.get_provider_parser(post['message'])
             if parser is None:
                 continue
-            location = parser.parse(post)
+            location = parser.extract(post)
             if location is None:
                 continue
             print location['message']
 
 
 class EhudHazalaParser(object):
-    def parse(self, post):
+    def extract(self, post):
         return None
 
 
@@ -124,7 +113,7 @@ class MadaParser(object):
                 return spot + len(case)
         return 0
 
-    def parse(self, post):
+    def extract(self, post):
         msg = post['message']
         if self.has_one_of(msg, (u'נפגע מרכב', u'על תאונה', u'רוכב אופנוע')):
             subject = msg[
