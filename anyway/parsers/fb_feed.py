@@ -7,6 +7,8 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from itertools import repeat
 import requests
 import pickle
+import re
+from googlemaps import geocoding,Client as GMapClient
 
 from ..models import City
 from ..utilities import init_flask
@@ -20,7 +22,9 @@ MADA_END_ADDRESS_MARKER = u'חובשים ופראמדיקים'
 MADA_TEXT_INDICATOR = u'התקבל דיווח במוקד 101 של מד"א במרחב'
 EHUD_TEXT_INDICATOR = u'דוברות איחוד הצלה:'
 IGNORE_STORY_INDICATOR = u'‎עדכוני חדשות‎ shared a link'
-REGEX_HEBREW_RANGE = u'ת..א'
+GOOGLE_API_KEY = 'AIzaSyBzx2_S-94XmcLqWpydr9EZRmouik0x__s'
+STR_LEN_AT_ROAD = len(u'בכביש')
+STR_LEN_TO_DIRECTION = len(u'לכיוון')
 
 app = init_flask()
 db = SQLAlchemy(app)
@@ -42,6 +46,7 @@ class ProcessHandler(object):
                 MADA_TEXT_INDICATOR: MadaParser(),
                 EHUD_TEXT_INDICATOR: EhudHazalaParser()
             }
+            self._gmapclient = GMapClient(GOOGLE_API_KEY)
         except GraphAPIError as e:
             logging.error('can not obtain access token,abort (%s)'.format(e.message))
 
@@ -52,7 +57,6 @@ class ProcessHandler(object):
     def read_data(self):
         with open('dumppost254.txt', 'rb') as fh:
             self._posts = pickle.Unpickler(fh).load()
-        print len(self._posts)
         return True
 
         if not self.has_access():
@@ -86,11 +90,15 @@ class ProcessHandler(object):
             parser = self.get_provider_parser(post['message'])
             if parser is None:
                 continue
-            location = parser.extract(post)
-            if location is None:
+            extract_address = parser.extract(post)
+            if extract_address is None:
                 continue
-            print location['message']
-
+            geocode = geocoding.geocode(self._gmapclient,address=extract_address,region='il')
+            if len(geocode) < 1:
+                print extract_address
+            else:
+                location = geocode[0]['geometry']['location']
+                print extract_address + ': (Lat:{0},Lng:{1})'.format(location['lat'],location['lng'])
 
 class EhudHazalaParser(object):
     def extract(self, post):
@@ -118,6 +126,20 @@ class MadaParser(object):
         if self.has_one_of(msg, (u'נפגע מרכב', u'על תאונה', u'רוכב אופנוע')):
             subject = msg[
                       msg.find(MADA_TEXT_INDICATOR) + len(MADA_TEXT_INDICATOR):msg.find(MADA_END_ADDRESS_MARKER)]
+
+            # near_of = self.find_address(subject,(u'בסמוך',u'סמוך'))
+            at_roud = subject.find(u'בכביש')
+            if at_roud > 0:
+                searchin = subject[STR_LEN_AT_ROAD+at_roud:].strip(u' .')
+                searchin_parts = searchin.split()
+                searchin_parts.insert(0,u'כביש')
+                try:
+                    part_pos = searchin_parts.index(u'לכיוון')
+                    searchin_parts = searchin_parts[:part_pos]
+                    result = u' '.join(searchin_parts)
+                except ValueError as e:
+                    return None
+                return result.replace(u'על גשר', '').replace(u'סמוך ל','')
             address_of = self.find_address(subject, (u' ברחוב', u" ברח'", u' בשדרות', u" בשד'", u' בדרך'))
             if address_of > 0:
                 searchin = subject[address_of:].strip(u' .')
@@ -128,10 +150,7 @@ class MadaParser(object):
                         criteria = u'ב' + city.shortname_heb
                         criteria_pos = searchin.find(criteria)
                     if criteria_pos >= 0:
-                        post['city_symbol_code'] = city.symbol_code
-                        post['city_pos'] = criteria_pos
-                        post['search_address'] = searchin[:criteria_pos].strip()
-                        return post  # we just find it, there is no reason to continue
+                        return searchin[:criteria_pos].strip()+u' '+city.search_heb
         return None
 
 

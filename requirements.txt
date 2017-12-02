@@ -30,3 +30,4 @@ click
 six
 celery[redis]
 facebook-sdk==2.0.0
+googlemaps=2.5.1
