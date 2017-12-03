@@ -23,7 +23,8 @@ TABLE_NAME = 'cities'
 _assign_symbol_shotname = {
     8300: u'ראשל"צ',
     3000: u'י-ם',
-    5000: u'ת"א'
+    5000: u'ת"א',
+    8600: u'ר"ג'
 }
 
 
