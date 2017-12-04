@@ -8,7 +8,7 @@ from itertools import repeat
 import requests
 import pickle
 import re
-from googlemaps import geocoding,Client as GMapClient
+from googlemaps import geocoding, Client as GMapClient
 
 from ..models import City
 from ..utilities import init_flask
@@ -25,6 +25,8 @@ IGNORE_STORY_INDICATOR = u'‎עדכוני חדשות‎ shared a link'
 GOOGLE_API_KEY = 'AIzaSyBzx2_S-94XmcLqWpydr9EZRmouik0x__s'
 STR_LEN_AT_ROAD = len(u'בכביש')
 STR_LEN_TO_DIRECTION = len(u'לכיוון')
+KEY_EVENT_ADDRESS = 'addr'
+KEY_EVENT_DESCRIBE = 'desc'
 
 app = init_flask()
 db = SQLAlchemy(app)
@@ -35,7 +37,6 @@ _city_criteria = db.session.query(City.search_heb, City.shortname_heb, City.symb
 
 
 # ##################################################################
-
 class ProcessHandler(object):
     def __init__(self):
         try:
@@ -90,59 +91,68 @@ class ProcessHandler(object):
             parser = self.get_provider_parser(post['message'])
             if parser is None:
                 continue
-            extract_address = parser.extract(post)
-            if extract_address is None:
-                continue
-            geocode = geocoding.geocode(self._gmapclient,address=extract_address,region='il')
-            if len(geocode) < 1:
-                print extract_address
-            else:
-                location = geocode[0]['geometry']['location']
-                print extract_address + ': (Lat:{0},Lng:{1})'.format(location['lat'],location['lng'])
+            extracted = parser.extract(post)
+            if KEY_EVENT_ADDRESS in extracted:
+                geocode = geocoding.geocode(self._gmapclient, address=extracted[KEY_EVENT_ADDRESS], region='il')
+                if len(geocode) > 0:
+                    location = geocode[0]['geometry']['location']
+                    print extracted[KEY_EVENT_DESCRIBE] +' --- '+extracted[KEY_EVENT_ADDRESS] + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
+
 
 class EhudHazalaParser(object):
     def extract(self, post):
-        return None
+        return {}
 
 
 class MadaParser(object):
     @staticmethod
-    def has_one_of(msg, cases):
-        for case in cases:
-            if msg.find(case) > 0:
-                return True
-        return False
+    def _find_one_of(msg, cases):
+        if not isinstance(cases, basestring):
+            for case in cases:
+                spot = msg.find(case)
+                if spot > 0:
+                    return {'at': spot, 'of': case, 'end': spot + len(case)}
+        else:
+            spot = msg.find(cases)
+            if spot > 0:
+                return {'at': spot, 'of': cases, 'end': spot + len(cases)}
+        return None
 
     @staticmethod
-    def find_address(msg, cases):
-        for case in cases:
-            spot = msg.find(case)
-            if spot > 0:
-                return spot + len(case)
-        return 0
+    def _extract_describe(text, from_pos):
+        parts = text[:from_pos].strip(u' ')
+        parts = parts.split()
+        del (parts[0])
+        del (parts[0])
+        return u' '.join(parts)
 
     def extract(self, post):
+        details = {}
         msg = post['message']
-        if self.has_one_of(msg, (u'נפגע מרכב', u'על תאונה', u'רוכב אופנוע')):
+        case_of = self._find_one_of(msg, (u'נפגע מרכב', u'על תאונה', u'רוכב אופנוע'))
+        if case_of is not None:
             subject = msg[
                       msg.find(MADA_TEXT_INDICATOR) + len(MADA_TEXT_INDICATOR):msg.find(MADA_END_ADDRESS_MARKER)]
 
             # near_of = self.find_address(subject,(u'בסמוך',u'סמוך'))
-            at_roud = subject.find(u'בכביש')
-            if at_roud > 0:
-                searchin = subject[STR_LEN_AT_ROAD+at_roud:].strip(u' .')
+            roud_of = self._find_one_of(subject, (u'בכביש'))
+            if roud_of is not None:
+                details[KEY_EVENT_DESCRIBE] = self._extract_describe(subject, roud_of['at'])
+                searchin = subject[roud_of['end']:].strip(u' .')
                 searchin_parts = searchin.split()
-                searchin_parts.insert(0,u'כביש')
+                searchin_parts.insert(0, u'כביש')
                 try:
                     part_pos = searchin_parts.index(u'לכיוון')
                     searchin_parts = searchin_parts[:part_pos]
                     result = u' '.join(searchin_parts)
                 except ValueError as e:
-                    return None
-                return result.replace(u'על גשר', '').replace(u'סמוך ל','')
-            address_of = self.find_address(subject, (u' ברחוב', u" ברח'", u' בשדרות', u" בשד'", u' בדרך'))
-            if address_of > 0:
-                searchin = subject[address_of:].strip(u' .')
+                    return details
+                details[KEY_EVENT_ADDRESS] = result.replace(u'על גשר', '').replace(u'סמוך ל', '')
+                return details
+            address_of = self._find_one_of(subject, (u' ברחוב', u" ברח'", u' בשדרות', u" בשד'", u' בדרך'))
+            if address_of is not None:
+                details[KEY_EVENT_DESCRIBE] = self._extract_describe(subject, address_of['at'])
+                searchin = subject[address_of['end']:].strip(u' .')
                 for city in _city_criteria:
                     criteria = u'ב' + city.search_heb
                     criteria_pos = searchin.find(criteria)
@@ -150,8 +160,10 @@ class MadaParser(object):
                         criteria = u'ב' + city.shortname_heb
                         criteria_pos = searchin.find(criteria)
                     if criteria_pos >= 0:
-                        return searchin[:criteria_pos].strip()+u' '+city.search_heb
-        return None
+                        details[KEY_EVENT_ADDRESS] = searchin[:criteria_pos].strip() + u' ' + city.search_heb
+                        break
+
+        return details
 
 
 def main():
