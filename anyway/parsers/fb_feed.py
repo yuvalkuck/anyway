@@ -7,7 +7,6 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from itertools import repeat
 import requests
 import pickle
-import re
 from googlemaps import geocoding, Client as GMapClient
 
 from ..models import City
@@ -74,8 +73,8 @@ class ProcessHandler(object):
         return True
 
     def get_provider_parser(self, msg):
-        if msg.find(MADA_TEXT_INDICATOR) >= 0:
-            return self._parsers_dict[MADA_TEXT_INDICATOR]
+        # if msg.find(MADA_TEXT_INDICATOR) >= 0:
+        #     return self._parsers_dict[MADA_TEXT_INDICATOR]
         if msg.find(EHUD_TEXT_INDICATOR) >= 0:
             return self._parsers_dict[EHUD_TEXT_INDICATOR]
         return None
@@ -92,19 +91,26 @@ class ProcessHandler(object):
             if parser is None:
                 continue
             extracted = parser.extract(post)
+            # add more then one KEY_EVENT_ADDRESS to look for location
             if KEY_EVENT_ADDRESS in extracted:
-                geocode = geocoding.geocode(self._gmapclient, address=extracted[KEY_EVENT_ADDRESS], region='il')
-                if len(geocode) > 0:
-                    location = geocode[0]['geometry']['location']
-                    print extracted[KEY_EVENT_DESCRIBE] +' --- '+extracted[KEY_EVENT_ADDRESS] + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
+                addresses = extracted[KEY_EVENT_ADDRESS]
+                if not isinstance(addresses, basestring):
+                    for addresse in addresses:
+                        geocode = geocoding.geocode(self._gmapclient, address=addresse, region='il')
+                        if len(geocode) > 0:
+                            location = geocode[0]['geometry']['location']
+                            print extracted[KEY_EVENT_DESCRIBE] +' --- '+extracted[KEY_EVENT_ADDRESS] + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
+                            break
+                else:
+                    geocode = geocoding.geocode(self._gmapclient, address=addresses, region='il')
+                    if len(geocode) > 0:
+                        location = geocode[0]['geometry']['location']
+                        print extracted[KEY_EVENT_DESCRIBE] + ' --- ' + extracted[
+                            KEY_EVENT_ADDRESS] + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
+                        break
 
 
-class EhudHazalaParser(object):
-    def extract(self, post):
-        return {}
-
-
-class MadaParser(object):
+class ProviderParserBase(object):
     @staticmethod
     def _find_one_of(msg, cases):
         if not isinstance(cases, basestring):
@@ -118,6 +124,28 @@ class MadaParser(object):
                 return {'at': spot, 'of': cases, 'end': spot + len(cases)}
         return None
 
+
+class EhudHazalaParser(ProviderParserBase):
+    def extract(self, post):
+        msg = post['message']
+        details = {}
+        relative_case_of = self._find_one_of(msg, (u'נפגע מ',u'נפגעה מ',u'תאונת דרכים', u'על תאונה', u'רוכב אופנוע',u'רוכב קטנוע',u'מפגיעת רכב',u'תאונה עם'))
+        if relative_case_of is not None:
+            # parts = self._find_one_of(msg,(u'טופל ע"י',u'טיפול רפואי ראשוני',u'טיפול ראשוני'))
+            print relative_case_of['of']
+            roud_of = self._find_one_of(msg, (u'בכביש'))
+            if roud_of is not None:
+
+            a =msg.split(relative_case_of['of'])
+            print a[0]
+            print a[1]
+            print "-------------------------------------------------"
+
+        return details
+
+
+class MadaParser(ProviderParserBase):
+
     @staticmethod
     def _extract_describe(text, from_pos):
         parts = text[:from_pos].strip(u' ')
@@ -129,8 +157,8 @@ class MadaParser(object):
     def extract(self, post):
         details = {}
         msg = post['message']
-        case_of = self._find_one_of(msg, (u'נפגע מרכב', u'על תאונה', u'רוכב אופנוע'))
-        if case_of is not None:
+        relative_case_of = self._find_one_of(msg, (u'נפגע מרכב', u'על תאונה', u'רוכב אופנוע'))
+        if relative_case_of is not None:
             subject = msg[
                       msg.find(MADA_TEXT_INDICATOR) + len(MADA_TEXT_INDICATOR):msg.find(MADA_END_ADDRESS_MARKER)]
 
