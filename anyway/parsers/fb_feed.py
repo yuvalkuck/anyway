@@ -16,8 +16,8 @@ from ..utilities import init_flask
 PAGE_NEWS_UPDATES_CODE = '601595769890923'
 
 # APP_... from app dashboard
-APP_ID = '1975701242713132'
-APP_SECRET = '180b55edfaf8e995d726c06002d08042'
+APP_ID = '156391101644523'
+APP_SECRET = '8012d05ce67928871140ca924f29b58f'
 MADA_END_ADDRESS_MARKER = u'חובשים ופראמדיקים'
 MADA_TEXT_INDICATOR = u'התקבל דיווח במוקד 101 של מד"א במרחב'
 EHUD_TEXT_INDICATOR = u'דוברות איחוד הצלה:'
@@ -74,8 +74,8 @@ class ProcessHandler(object):
         return True
 
     def get_provider_parser(self, msg):
-        # if msg.find(MADA_TEXT_INDICATOR) >= 0:
-        #     return self._parsers_dict[MADA_TEXT_INDICATOR]
+        if msg.find(MADA_TEXT_INDICATOR) >= 0:
+            return self._parsers_dict[MADA_TEXT_INDICATOR]
         if msg.find(EHUD_TEXT_INDICATOR) >= 0:
             return self._parsers_dict[EHUD_TEXT_INDICATOR]
         return None
