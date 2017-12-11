@@ -6,6 +6,7 @@ from facebook import GraphAPI, GraphAPIError
 from flask.ext.sqlalchemy import SQLAlchemy
 from itertools import repeat
 import requests
+import re
 import pickle
 from googlemaps import geocoding, Client as GMapClient
 
@@ -15,8 +16,8 @@ from ..utilities import init_flask
 PAGE_NEWS_UPDATES_CODE = '601595769890923'
 
 # APP_... from app dashboard
-APP_ID = '156391101644523'
-APP_SECRET = '8012d05ce67928871140ca924f29b58f'
+APP_ID = '1975701242713132'
+APP_SECRET = '180b55edfaf8e995d726c06002d08042'
 MADA_END_ADDRESS_MARKER = u'חובשים ופראמדיקים'
 MADA_TEXT_INDICATOR = u'התקבל דיווח במוקד 101 של מד"א במרחב'
 EHUD_TEXT_INDICATOR = u'דוברות איחוד הצלה:'
@@ -55,7 +56,7 @@ class ProcessHandler(object):
 
     @property
     def read_data(self):
-        with open('dumppost254.txt', 'rb') as fh:
+        with open('dumppost139.txt', 'rb') as fh:
             self._posts = pickle.Unpickler(fh).load()
         return True
 
@@ -99,15 +100,16 @@ class ProcessHandler(object):
                         geocode = geocoding.geocode(self._gmapclient, address=addresse, region='il')
                         if len(geocode) > 0:
                             location = geocode[0]['geometry']['location']
-                            print extracted[KEY_EVENT_DESCRIBE] +' --- '+extracted[KEY_EVENT_ADDRESS] + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
+                            print extracted[KEY_EVENT_DESCRIBE] +' --- '+addresse + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
                             break
                 else:
                     geocode = geocoding.geocode(self._gmapclient, address=addresses, region='il')
                     if len(geocode) > 0:
                         location = geocode[0]['geometry']['location']
-                        print extracted[KEY_EVENT_DESCRIBE] + ' --- ' + extracted[
-                            KEY_EVENT_ADDRESS] + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
-                        break
+                        print extracted[KEY_EVENT_DESCRIBE] + ' --- ' + \
+                              extracted[KEY_EVENT_ADDRESS] + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
+                    else:
+                        print extracted[KEY_EVENT_ADDRESS]
 
 
 class ProviderParserBase(object):
@@ -124,24 +126,59 @@ class ProviderParserBase(object):
                 return {'at': spot, 'of': cases, 'end': spot + len(cases)}
         return None
 
+    @staticmethod
+    def _remove_number_of_words(msg,words=1,front=True):
+        parts = msg.strip(u' ').split()
+        while(words > 0):
+            words -= 1
+            if front:
+                del (parts[-1])
+            else:
+                del (parts[0])
+        return u' '.join(parts)
+
+
 
 class EhudHazalaParser(ProviderParserBase):
+
+    @staticmethod
+    def _dot_split_first_part(msg):
+        parts = msg.split(u'.')
+        return parts[0]
+
+    @staticmethod
+    def _prepare_address_cases(address, append=''):
+        address = append+address.replace(u'בסמוך ל', u'ליד ').strip(u'.')
+        if address.find(u'צומת') > 0:
+            return (address,address.replace(u'צומת',''))
+        return address
+
     def extract(self, post):
-        msg = post['message']
-        details = {}
-        relative_case_of = self._find_one_of(msg, (u'נפגע מ',u'נפגעה מ',u'תאונת דרכים', u'על תאונה', u'רוכב אופנוע',u'רוכב קטנוע',u'מפגיעת רכב',u'תאונה עם'))
-        if relative_case_of is not None:
-            # parts = self._find_one_of(msg,(u'טופל ע"י',u'טיפול רפואי ראשוני',u'טיפול ראשוני'))
-            print relative_case_of['of']
-            roud_of = self._find_one_of(msg, (u'בכביש'))
-            if roud_of is not None:
-
-            a =msg.split(relative_case_of['of'])
-            print a[0]
-            print a[1]
-            print "-------------------------------------------------"
-
-        return details
+        return {}
+        # msg = post['message']
+        # details = {}
+        # relative_case_of = self._find_one_of(msg, (u'נפגע מ',u'נפגעה מ',u'תאונת דרכים', u'על תאונה', u'רוכב אופנוע',u'רוכב קטנוע',u'פגיעת רכב',u'תאונה עם'))
+        # if relative_case_of is not None:
+        #     print msg
+        #     # parts = self._find_one_of(msg,(u'טופל ע"י',u'טיפול רפואי ראשוני',u'טיפול ראשוני'))
+        #     print relative_case_of['of']
+        #     roud_of = self._find_one_of(msg, (u' בכביש',u' כביש'))
+        #     if roud_of is not None:
+        #         parts =msg.split(relative_case_of['of'])
+        #         details[KEY_EVENT_DESCRIBE] = parts[0]
+        #         # re.search(r'[{0}]\D+\d+' % u',.' +u' כביש',.............
+        #         roud_parts = parts[-1].split(roud_of['of'])
+        #         address = self._dot_split_first_part(roud_parts[1])
+        #         details[KEY_EVENT_ADDRESS] = self._prepare_address_cases(address,u'כביש ')
+        #         print details[KEY_EVENT_ADDRESS]
+        #         print "-------------------------------------------------"
+        #     else:
+        #         print msg
+        #         print "+++++++++++++++++++++++++++++++++++++++++++++++++"
+        # else:
+        #     print msg
+        #     print "*****************************************************"
+        # return details
 
 
 class MadaParser(ProviderParserBase):
