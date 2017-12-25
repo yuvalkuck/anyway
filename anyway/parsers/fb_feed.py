@@ -13,11 +13,13 @@ from googlemaps import geocoding, Client as GMapClient
 from ..models import City
 from ..utilities import init_flask
 
-PAGE_NEWS_UPDATES_CODE = '601595769890923'
+FB_PAGE_NEWS_UPDATES_CODE = '601595769890923'
+FB_PAGE_TARGET = 'UvSilver-135305907147204'
 
 # APP_... from app dashboard
-APP_ID = '156391101644523'
-APP_SECRET = '8012d05ce67928871140ca924f29b58f'
+FB_APP_ID = '156391101644523'
+FB_APP_SECRET = '8012d05ce67928871140ca924f29b58f'
+
 MADA_END_ADDRESS_MARKER = u'חובשים ופראמדיקים'
 MADA_TEXT_INDICATOR = u'התקבל דיווח במוקד 101 של מד"א במרחב'
 EHUD_TEXT_INDICATOR = u'דוברות איחוד הצלה:'
@@ -63,7 +65,7 @@ class ProcessHandler(object):
         if not self.has_access():
             return False
         try:
-            response_posts = self._api.get_object(PAGE_NEWS_UPDATES_CODE + '/posts')
+            response_posts = self._api.get_object(FB_PAGE_NEWS_UPDATES_CODE + '/posts')
             self._posts = response_posts['data']
             for idx in repeat(None, 10):
                 response_posts = requests.request('GET', response_posts['paging']['next']).json()
