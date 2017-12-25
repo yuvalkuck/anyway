@@ -94,24 +94,30 @@ class ProcessHandler(object):
             if parser is None:
                 continue
             extracted = parser.extract(post)
-            # add more then one KEY_EVENT_ADDRESS to look for location
-            if KEY_EVENT_ADDRESS in extracted:
-                addresses = extracted[KEY_EVENT_ADDRESS]
-                if not isinstance(addresses, basestring):
-                    for addresse in addresses:
-                        geocode = geocoding.geocode(self._gmapclient, address=addresse, region='il')
-                        if len(geocode) > 0:
-                            location = geocode[0]['geometry']['location']
-                            print extracted[KEY_EVENT_DESCRIBE] +' --- '+addresse + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
-                            break
-                else:
-                    geocode = geocoding.geocode(self._gmapclient, address=addresses, region='il')
+            if extracted is not None and extracted.has_address():
+                for addresse in extracted.addresses:
+                    geocode = geocoding.geocode(self._gmapclient, address=addresse, region='il')
                     if len(geocode) > 0:
                         location = geocode[0]['geometry']['location']
-                        print extracted[KEY_EVENT_DESCRIBE] + ' --- ' + \
-                              extracted[KEY_EVENT_ADDRESS] + ': (Lat:{0},Lng:{1})'.format(location['lat'], location['lng'])
-                    else:
-                        print extracted[KEY_EVENT_ADDRESS]
+                        print extracted.desc + ' --- ' + addresse + ': (Lat:{0},Lng:{1})'.format(
+                            location['lat'], location['lng'])
+                        break
+
+
+class EventDescriptor(object):
+    def __init__(self, msg, subject):
+        self.msg = msg
+        self.subject = subject
+        self.addresses = []
+
+    def set_describe(self, text):
+        self.desc = text
+
+    def add_address(self, text):
+        self.addresses.append(text)
+
+    def has_address(self):
+        return len(self.addresses) > 0
 
 
 class ProviderParserBase(object):
@@ -129,9 +135,9 @@ class ProviderParserBase(object):
         return None
 
     @staticmethod
-    def _remove_number_of_words(msg,words=1,front=True):
+    def _remove_number_of_words(msg, words=1, front=True):
         parts = msg.strip(u' ').split()
-        while(words > 0):
+        while (words > 0):
             words -= 1
             if front:
                 del (parts[-1])
@@ -140,9 +146,7 @@ class ProviderParserBase(object):
         return u' '.join(parts)
 
 
-
 class EhudHazalaParser(ProviderParserBase):
-
     @staticmethod
     def _dot_split_first_part(msg):
         parts = msg.split(u'.')
@@ -150,13 +154,13 @@ class EhudHazalaParser(ProviderParserBase):
 
     @staticmethod
     def _prepare_address_cases(address, append=''):
-        address = append+address.replace(u'בסמוך ל', u'ליד ').strip(u'.')
+        address = append + address.replace(u'בסמוך ל', u'ליד ').strip(u'.')
         if address.find(u'צומת') > 0:
-            return (address,address.replace(u'צומת',''))
+            return (address, address.replace(u'צומת', ''))
         return address
 
     def extract(self, post):
-        return {}
+        return None
         # msg = post['message']
         # details = {}
         # relative_case_of = self._find_one_of(msg, (u'נפגע מ',u'נפגעה מ',u'תאונת דרכים', u'על תאונה', u'רוכב אופנוע',u'רוכב קטנוע',u'פגיעת רכב',u'תאונה עם'))
@@ -184,7 +188,6 @@ class EhudHazalaParser(ProviderParserBase):
 
 
 class MadaParser(ProviderParserBase):
-
     @staticmethod
     def _extract_describe(text, from_pos):
         parts = text[:from_pos].strip(u' ')
@@ -194,43 +197,46 @@ class MadaParser(ProviderParserBase):
         return u' '.join(parts)
 
     def extract(self, post):
-        details = {}
+
         msg = post['message']
         relative_case_of = self._find_one_of(msg, (u'נפגע מרכב', u'על תאונה', u'רוכב אופנוע'))
-        if relative_case_of is not None:
-            subject = msg[
-                      msg.find(MADA_TEXT_INDICATOR) + len(MADA_TEXT_INDICATOR):msg.find(MADA_END_ADDRESS_MARKER)]
+        if relative_case_of is None:
+            return None
 
-            # near_of = self.find_address(subject,(u'בסמוך',u'סמוך'))
-            roud_of = self._find_one_of(subject, (u'בכביש'))
-            if roud_of is not None:
-                details[KEY_EVENT_DESCRIBE] = self._extract_describe(subject, roud_of['at'])
-                searchin = subject[roud_of['end']:].strip(u' .')
-                searchin_parts = searchin.split()
-                searchin_parts.insert(0, u'כביש')
-                try:
-                    part_pos = searchin_parts.index(u'לכיוון')
-                    searchin_parts = searchin_parts[:part_pos]
-                    result = u' '.join(searchin_parts)
-                except ValueError as e:
-                    return details
-                details[KEY_EVENT_ADDRESS] = result.replace(u'על גשר', '').replace(u'סמוך ל', '')
-                return details
-            address_of = self._find_one_of(subject, (u' ברחוב', u" ברח'", u' בשדרות', u" בשד'", u' בדרך'))
-            if address_of is not None:
-                details[KEY_EVENT_DESCRIBE] = self._extract_describe(subject, address_of['at'])
-                searchin = subject[address_of['end']:].strip(u' .')
-                for city in _city_criteria:
-                    criteria = u'ב' + city.search_heb
+        subject = msg[
+                  msg.find(MADA_TEXT_INDICATOR) + len(MADA_TEXT_INDICATOR):msg.find(MADA_END_ADDRESS_MARKER)]
+        descriptor = EventDescriptor(msg, subject)
+
+        # near_of = self.find_address(subject,(u'בסמוך',u'סמוך'))
+        roud_of = self._find_one_of(subject, (u'בכביש'))
+        if roud_of is not None:
+            descriptor.set_describe(self._extract_describe(subject, roud_of['at']))
+            searchin = subject[roud_of['end']:].strip(u' .')
+            searchin_parts = searchin.split()
+            searchin_parts.insert(0, u'כביש')
+            try:
+                part_pos = searchin_parts.index(u'לכיוון')
+                searchin_parts = searchin_parts[:part_pos]
+                result = u' '.join(searchin_parts)
+            except ValueError as e:
+                return descriptor
+            descriptor.add_address(result.replace(u'על גשר', '').replace(u'סמוך ל', ''))
+            return descriptor
+        address_of = self._find_one_of(subject, (u' ברחוב', u" ברח'", u' בשדרות', u" בשד'", u' בדרך'))
+        if address_of is not None:
+            descriptor.set_describe(self._extract_describe(subject, address_of['at']))
+            searchin = subject[address_of['end']:].strip(u' .')
+            for city in _city_criteria:
+                criteria = u'ב' + city.search_heb
+                criteria_pos = searchin.find(criteria)
+                if city.shortname_heb != None and criteria_pos < 0:  # if we have short name and we can not find match
+                    criteria = u'ב' + city.shortname_heb
                     criteria_pos = searchin.find(criteria)
-                    if city.shortname_heb != None and criteria_pos < 0:  # if we have short name and we can not find match
-                        criteria = u'ב' + city.shortname_heb
-                        criteria_pos = searchin.find(criteria)
-                    if criteria_pos >= 0:
-                        details[KEY_EVENT_ADDRESS] = searchin[:criteria_pos].strip() + u' ' + city.search_heb
-                        break
+                if criteria_pos >= 0:
+                    descriptor.add_address(searchin[:criteria_pos].strip() + u' ' + city.search_heb)
+                    break
 
-        return details
+        return descriptor
 
 
 def main():
