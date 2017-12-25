@@ -153,38 +153,34 @@ class EhudHazalaParser(ProviderParserBase):
         return parts[0]
 
     @staticmethod
-    def _prepare_address_cases(address, append=''):
+    def _prepare_address_cases(descriptor,address, append=''):
         address = append + address.replace(u'בסמוך ל', u'ליד ').strip(u'.')
+        descriptor.add_address(address)
         if address.find(u'צומת') > 0:
-            return (address, address.replace(u'צומת', ''))
-        return address
+            descriptor.add_address(address.replace(u'צומת', ''))
 
     def extract(self, post):
         return None
         # msg = post['message']
-        # details = {}
+        # 
         # relative_case_of = self._find_one_of(msg, (u'נפגע מ',u'נפגעה מ',u'תאונת דרכים', u'על תאונה', u'רוכב אופנוע',u'רוכב קטנוע',u'פגיעת רכב',u'תאונה עם'))
-        # if relative_case_of is not None:
-        #     print msg
-        #     # parts = self._find_one_of(msg,(u'טופל ע"י',u'טיפול רפואי ראשוני',u'טיפול ראשוני'))
-        #     print relative_case_of['of']
-        #     roud_of = self._find_one_of(msg, (u' בכביש',u' כביש'))
-        #     if roud_of is not None:
-        #         parts =msg.split(relative_case_of['of'])
-        #         details[KEY_EVENT_DESCRIBE] = parts[0]
-        #         # re.search(r'[{0}]\D+\d+' % u',.' +u' כביש',.............
-        #         roud_parts = parts[-1].split(roud_of['of'])
-        #         address = self._dot_split_first_part(roud_parts[1])
-        #         details[KEY_EVENT_ADDRESS] = self._prepare_address_cases(address,u'כביש ')
-        #         print details[KEY_EVENT_ADDRESS]
-        #         print "-------------------------------------------------"
-        #     else:
-        #         print msg
-        #         print "+++++++++++++++++++++++++++++++++++++++++++++++++"
-        # else:
-        #     print msg
-        #     print "*****************************************************"
-        # return details
+        # if relative_case_of is None:
+        #     return None
+        #
+        # descriptor = EventDescriptor(msg, '')
+        # print msg
+        # # parts = self._find_one_of(msg,(u'טופל ע"י',u'טיפול רפואי ראשוני',u'טיפול ראשוני'))
+        # print relative_case_of['of']
+        # roud_of = self._find_one_of(msg, (u' בכביש',u' כביש'))
+        # if roud_of is not None:
+        #     parts =msg.split(relative_case_of['of'])
+        #     descriptor.set_describe(parts[0])
+        #     # re.search(r'[{0}]\D+\d+' % u',.' +u' כביש',.............
+        #     roud_parts = parts[-1].split(roud_of['of'])
+        #     address = self._dot_split_first_part(roud_parts[1])
+        #     self._prepare_address_cases(descriptor,address,u'כביש ')
+        #
+        # return descriptor
 
 
 class MadaParser(ProviderParserBase):
