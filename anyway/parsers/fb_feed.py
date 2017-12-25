@@ -162,7 +162,7 @@ class EhudHazalaParser(ProviderParserBase):
     def extract(self, post):
         return None
         # msg = post['message']
-        # 
+        #
         # relative_case_of = self._find_one_of(msg, (u'נפגע מ',u'נפגעה מ',u'תאונת דרכים', u'על תאונה', u'רוכב אופנוע',u'רוכב קטנוע',u'פגיעת רכב',u'תאונה עם'))
         # if relative_case_of is None:
         #     return None
