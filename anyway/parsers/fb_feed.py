@@ -75,6 +75,9 @@ class ProcessHandler(object):
             return False
         return True
 
+    def place_post(self, descriptor):
+        pass
+
     def get_provider_parser(self, msg):
         if msg.find(MADA_TEXT_INDICATOR) >= 0:
             return self._parsers_dict[MADA_TEXT_INDICATOR]
@@ -95,12 +98,16 @@ class ProcessHandler(object):
                 continue
             extracted = parser.extract(post)
             if extracted is not None and extracted.has_address():
+                extracted.post_id = post['id']
+                extracted.post_tm = post['created_time']
                 for addresse in extracted.addresses:
                     geocode = geocoding.geocode(self._gmapclient, address=addresse, region='il')
                     if len(geocode) > 0:
                         location = geocode[0]['geometry']['location']
-                        print extracted.desc + ' --- ' + addresse + ': (Lat:{0},Lng:{1})'.format(
-                            location['lat'], location['lng'])
+                        extracted.sel_addr = addresse
+                        extracted.lat = location['lat']
+                        extracted.lng = location['lng']
+                        print extracted.__str__()
                         break
 
 
@@ -109,6 +116,14 @@ class EventDescriptor(object):
         self.msg = msg
         self.subject = subject
         self.addresses = []
+        self.sel_addr = u'NA'
+        self.lat = 0
+        self.lng = 0
+        self.post_id = 0
+        self.post_tm = 0
+
+    def __str__(self):
+        return u'address:{0}\nlat:{1},long:{2}\nID:{3},Time:{4}'.format(self.sel_addr,self.lat,self.lng,self.post_id,self.post_tm)
 
     def set_describe(self, text):
         self.desc = text
