@@ -7,6 +7,8 @@ from flask.ext.sqlalchemy import SQLAlchemy
 from itertools import repeat
 import requests
 import re
+from datetime import datetime, timedelta
+import time
 import pickle
 from googlemaps import geocoding, Client as GMapClient
 
@@ -14,11 +16,13 @@ from ..models import City
 from ..utilities import init_flask
 
 FB_PAGE_NEWS_UPDATES_CODE = '601595769890923'
-FB_PAGE_TARGET = 'UvSilver-135305907147204'
+FB_PAGE_TARGET = '135305907147204'
 
 # APP_... from app dashboard
 FB_APP_ID = '156391101644523'
 FB_APP_SECRET = '8012d05ce67928871140ca924f29b58f'
+
+FB_PAGE_ACCESS_TOKEN = 'EAACOPKQPPusBAHqHLA0iAqNh6OMi1oOUOcahZBjWYCjKLpy00pZCXhbttVkz3iyFd5E3NtCY7IuWFynQvVoCDaftxZBEnH1ZBJj0Yt2ZB5QqdbRL2GB6qN7L6kictn7fTzAV9l57li0ZBmbPodiuuZB0NUOLjgQU0CjA4qagqowuxxcIUnsGBuarIcxILvo4KsZD'
 
 MADA_END_ADDRESS_MARKER = u'חובשים ופראמדיקים'
 MADA_TEXT_INDICATOR = u'התקבל דיווח במוקד 101 של מד"א במרחב'
@@ -29,6 +33,7 @@ STR_LEN_AT_ROAD = len(u'בכביש')
 STR_LEN_TO_DIRECTION = len(u'לכיוון')
 KEY_EVENT_ADDRESS = 'addr'
 KEY_EVENT_DESCRIBE = 'desc'
+MAX_DIFERENCE_IN_DAYS = 1
 
 app = init_flask()
 db = SQLAlchemy(app)
@@ -37,26 +42,40 @@ _city_criteria = db.session.query(City.search_heb, City.shortname_heb, City.symb
     .order_by(City.search_priority.desc()) \
     .all()
 
-
 # ##################################################################
 class ProcessHandler(object):
-    def __init__(self):
+    def __init__(self, interval):
+
+        self.tm_min = time.time() - 60 * 60 * interval
         try:
-            self._api = GraphAPI()
-            # self._api.access_token = self._api.get_app_access_token(APP_ID, APP_SECRET)
             self._posts = []
             self._parsers_dict = {
                 MADA_TEXT_INDICATOR: MadaParser(),
                 EHUD_TEXT_INDICATOR: EhudHazalaParser()
             }
+            self._api = GraphAPI()
+            self._api.access_token = self._api.get_app_access_token(FB_APP_ID, FB_APP_SECRET)
             self._gmapclient = GMapClient(GOOGLE_API_KEY)
         except GraphAPIError as e:
             logging.error('can not obtain access token,abort (%s)'.format(e.message))
+            raise e
 
     def has_access(self):
         return self._api.access_token is not None
 
-    @property
+    @staticmethod
+    def text_timestamp_to_datetime(timestamp):
+        if re.search('\+0000$',timestamp) is not None:
+            timestamp = timestamp.split('+')[0]
+        return datetime.strptime(timestamp, u'%Y-%m-%dT%H:%M:%S')
+
+    @staticmethod
+    def is_inrange(timestamp):
+        diff_time = datetime.utcnow() - ProcessHandler.text_timestamp_to_datetime(timestamp)
+        if diff_time.days > MAX_DIFERENCE_IN_DAYS:
+            return False
+        return True
+
     def read_data(self):
         with open('dumppost139.txt', 'rb') as fh:
             self._posts = pickle.Unpickler(fh).load()
@@ -75,7 +94,20 @@ class ProcessHandler(object):
             return False
         return True
 
+    def write_port(self, message, link=None):
+        try:
+            args = {'message': message, 'access_token' : FB_PAGE_ACCESS_TOKEN}
+            if link is not None:
+                args['link'] = link
+            response_posts = self._api.put_object(FB_PAGE_TARGET ,'feed', **args)
+        except GraphAPIError as e:
+            logging.error('can not post message to feed, abort (%s)'.format(e.message))
+            return False
+        return True
+
     def place_post(self, descriptor):
+        self.write_port(descriptor.desc)
+        # print descriptor.__str__()
         pass
 
     def get_provider_parser(self, msg):
@@ -87,6 +119,8 @@ class ProcessHandler(object):
 
     def process(self):
         for post in self._posts:
+            if self.is_inrange(post['created_time']) is False:
+                continue
             if 'message' not in post:
                 if 'story' in post:
                     post['message'] = post['story']
@@ -96,18 +130,18 @@ class ProcessHandler(object):
             parser = self.get_provider_parser(post['message'])
             if parser is None:
                 continue
-            extracted = parser.extract(post)
-            if extracted is not None and extracted.has_address():
-                extracted.post_id = post['id']
-                extracted.post_tm = post['created_time']
-                for addresse in extracted.addresses:
+            descriptor = parser.extract(post)
+            if descriptor is not None and descriptor.has_address():
+                descriptor.post_id = post['id']
+                descriptor.post_tm = post['created_time']
+                for addresse in descriptor.addresses:
                     geocode = geocoding.geocode(self._gmapclient, address=addresse, region='il')
                     if len(geocode) > 0:
                         location = geocode[0]['geometry']['location']
-                        extracted.sel_addr = addresse
-                        extracted.lat = location['lat']
-                        extracted.lng = location['lng']
-                        print extracted.__str__()
+                        descriptor.sel_addr = addresse
+                        descriptor.lat = location['lat']
+                        descriptor.lng = location['lng']
+                        self.place_post(descriptor)
                         break
 
 
@@ -123,7 +157,8 @@ class EventDescriptor(object):
         self.post_tm = 0
 
     def __str__(self):
-        return u'address:{0}\nlat:{1},long:{2}\nID:{3},Time:{4}'.format(self.sel_addr,self.lat,self.lng,self.post_id,self.post_tm)
+        return u'address:{0}\nlat:{1},long:{2}\nID:{3},Time:{4}'.format(self.sel_addr, self.lat, self.lng, self.post_id,
+                                                                        self.post_tm)
 
     def set_describe(self, text):
         self.desc = text
@@ -168,7 +203,7 @@ class EhudHazalaParser(ProviderParserBase):
         return parts[0]
 
     @staticmethod
-    def _prepare_address_cases(descriptor,address, append=''):
+    def _prepare_address_cases(descriptor, address, append=''):
         address = append + address.replace(u'בסמוך ל', u'ליד ').strip(u'.')
         descriptor.add_address(address)
         if address.find(u'צומת') > 0:
@@ -250,9 +285,9 @@ class MadaParser(ProviderParserBase):
         return descriptor
 
 
-def main():
-    handler = ProcessHandler()
-    if not handler.read_data:
+def main(interval):
+    handler = ProcessHandler(interval)
+    if not handler.read_data():
         logging.debug('no data to process,abort')
         return
     handler.process()
