@@ -110,7 +110,7 @@ class ProcessHandler(object):
         return True
 
     def place_post(self, descriptor):
-        self.write_port(descriptor.desc)
+        self.write_port(descriptor.__str__())
         # print descriptor.__str__()
         pass
 
@@ -161,8 +161,8 @@ class EventDescriptor(object):
         self.post_tm = 0
 
     def __str__(self):
-        return u'address:{0}\nlat:{1},long:{2}\nID:{3},Time:{4}'.format(self.sel_addr, self.lat, self.lng, self.post_id,
-                                                                        self.post_tm)
+        return u'desc:{5}\naddress:{0}\nlat:{1},long:{2}\nID:{3},Time:{4}'.format(self.sel_addr, self.lat, self.lng, self.post_id,
+                                                                        self.post_tm,self.desc)
 
     def set_describe(self, text):
         self.desc = text
