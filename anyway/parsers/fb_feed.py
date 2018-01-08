@@ -22,7 +22,8 @@ FB_PAGE_TARGET = '135305907147204'
 FB_APP_ID = '156391101644523'
 FB_APP_SECRET = '8012d05ce67928871140ca924f29b58f'
 
-FB_PAGE_ACCESS_TOKEN = 'EAACOPKQPPusBAHqHLA0iAqNh6OMi1oOUOcahZBjWYCjKLpy00pZCXhbttVkz3iyFd5E3NtCY7IuWFynQvVoCDaftxZBEnH1ZBJj0Yt2ZB5QqdbRL2GB6qN7L6kictn7fTzAV9l57li0ZBmbPodiuuZB0NUOLjgQU0CjA4qagqowuxxcIUnsGBuarIcxILvo4KsZD'
+# https://developers.facebook.com/tools/explorer/156391101644523?method=POST&path=135305907147204%2Ffeed&version=v2.11
+FB_PAGE_ACCESS_TOKEN = 'EAACOPKQPPusBAJZCYUgZCaRXUWkkElpLq3SCPWLNwZBqHNSHfLWqryLlwJMiJupJb8Dm67DGYaFbH5JmjEJMnLgVQTyphO79CtV8wudYigdRmnXHh44t0XzVO6qCtdB9DsiYYpQs90cacZAHiw3QVoE1gUApJ72UfjuIC7yaWZBZB5Wr3ZBN0OYjgLD4fEtFx0ZD'
 
 MADA_END_ADDRESS_MARKER = u'חובשים ופראמדיקים'
 MADA_TEXT_INDICATOR = u'התקבל דיווח במוקד 101 של מד"א במרחב'
@@ -96,11 +97,14 @@ class ProcessHandler(object):
 
     def write_port(self, message, link=None):
         try:
-            args = {'message': message, 'access_token' : FB_PAGE_ACCESS_TOKEN}
+            args = {'message': message, 'access_token' : FB_PAGE_ACCESS_TOKEN,'scope':'publish_actions'}
             if link is not None:
                 args['link'] = link
             response_posts = self._api.put_object(FB_PAGE_TARGET ,'feed', **args)
         except GraphAPIError as e:
+            if e.code == 506:
+                logging.warn('duplicate message, ignore (%s)'.format(e.message))
+                return True
             logging.error('can not post message to feed, abort (%s)'.format(e.message))
             return False
         return True
